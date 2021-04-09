@@ -1,0 +1,5 @@
+super:
+  deep:
+    foo: from the file
+    none: true
+shallow: so easy
