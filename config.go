@@ -128,10 +128,18 @@ func Bind(key string, obj interface{}) {
 
 	event.On("updateConfig", event.ListenerFunc(func(e event.Event) error {
 		return viper.UnmarshalKey(key, obj)
-	}), event.Normal)
+	}), event.Max)
 }
 
 func Initialize() error {
 	err, _ := event.Fire("updateConfig", nil)
 	return err
+}
+
+type Callback func() error
+
+func OnUpdate(callback Callback) {
+	event.On("updateConfig", event.ListenerFunc(func(e event.Event) error {
+		return callback()
+	}), event.Normal)
 }
