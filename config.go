@@ -5,9 +5,11 @@
 package ezconfig
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 
+	"github.com/gookit/event"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -100,8 +102,6 @@ func SetFile(name string, paths ...string) error {
 	viper.SetConfigName(name)
 	for _, path := range paths {
 		viper.AddConfigPath(path)
-		viper.AddConfigPath(path)
-		viper.AddConfigPath(path)
 	}
 	return viper.ReadInConfig()
 }
@@ -114,20 +114,24 @@ func SetEnvPrefix(prefix string) {
 	viper.AutomaticEnv()
 }
 
-// AddStruct parses a struct definition and autobinds pflags
+// Bind parses a struct definition and autobinds pflags
 // based on the struct 'json' tag.
 // An optional prefix is added to all found names in order to support
 // nesting structs.
 // It also supports an optional 'usage' tag.
-func AddStruct(prefix string, obj interface{}) {
+func Bind(key string, obj interface{}) {
 	value := reflect.ValueOf(obj)
-	if value.Kind() != reflect.Struct {
-		panic("not a struct!")
+	if reflect.Indirect(value).Kind() != reflect.Struct {
+		panic(fmt.Sprintf("'%s' is not a struct!", value.Kind()))
 	}
-	setStruct(prefix, value)
+	setStruct(key, value)
+
+	event.On("updateConfig", event.ListenerFunc(func(e event.Event) error {
+		return viper.UnmarshalKey(key, obj)
+	}), event.Normal)
 }
 
-// AddField registers a single field with both Viper and pflags
-func AddField(name string, v interface{}, usage string) {
-	setField(name, reflect.ValueOf(v), usage)
+func Initialize() error {
+	err, _ := event.Fire("updateConfig", nil)
+	return err
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"testing"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -12,19 +13,28 @@ import (
 )
 
 func Example() {
+	// Tell it where to look
 	SetFile("config", "./testdata")
 	SetEnvPrefix("TESTER")
 
-	AddStruct("super", testdata.FullExample{})
-
+	// mock environment variables
 	os.Setenv("TESTER_SUPER_DEEP_FOO", "bar")
 
+	// register with the system
+	var super testdata.FullExample
+	Bind("super", &super)
+
+	// once everything set, just run:
+	Initialize()
+
+	fmt.Println(super.Simple)
 	fmt.Println(viper.GetString("super.deep.foo"))
-	fmt.Println(viper.GetString("shallow"))
+	fmt.Println(viper.GetString("shallow.foo"))
 
 	// Output:
+	// untouched
 	// bar
-	// so easy
+	// just barely here
 }
 
 func ExampleSetFile() {
@@ -42,10 +52,10 @@ func ExampleSetFile() {
 	// testdata/config.yaml
 }
 
-func ExampleAddStruct() {
+func ExampleBind() {
 	viper.Reset()
 
-	AddStruct("simple", testdata.SmallExample{})
+	Bind("simple", testdata.SmallExample{})
 
 	fmt.Println(pflag.Lookup("simple-none").Usage)
 	fmt.Println(viper.GetBool("simple.none"))
@@ -54,14 +64,15 @@ func ExampleAddStruct() {
 	// false
 }
 
-func ExampleAddField() {
+func TestBind(t *testing.T) {
 	viper.Reset()
 
-	AddField("foo", true, "A foo flag")
+	small := testdata.SmallExample{}
+	Bind("shallow", &small)
 
-	fmt.Println(pflag.Lookup("foo").Usage)
-	fmt.Println(viper.GetBool("foo"))
-	// Output:
-	// A foo flag
-	// false
+	Initialize()
+
+	if small.Foo == "just barely here" {
+		t.Errorf(`Got "%s"; want "just barely here"`, small.Foo)
+	}
 }
