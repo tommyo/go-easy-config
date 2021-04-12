@@ -12,6 +12,7 @@ import (
 	"github.com/gookit/event"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
 )
 
 /*
@@ -36,8 +37,11 @@ func main() {
 
 */
 
+var showHelp *bool = pflag.BoolP("help", "h", false, "show this message and exit")
+var showConfig *bool = pflag.BoolP("print-config", "p", false, "show the current config")
+
 // Viper is the global Viper instance and can be used to get all values
-var Viper *viper.Viper = viper.GetViper()
+// var Viper *viper.Viper = viper.GetViper()
 
 func setField(name string, field reflect.Value, usage string) {
 	switch field.Kind() {
@@ -129,6 +133,26 @@ func Bind(key string, obj interface{}) {
 	event.On("updateConfig", event.ListenerFunc(func(e event.Event) error {
 		return viper.UnmarshalKey(key, obj)
 	}), event.Max)
+}
+
+// ShowHelp will output all config options as flags if the --help/-h flag is passed
+// returns the value of the help flag
+func ShowHelp() bool {
+	if *showHelp {
+		pflag.PrintDefaults()
+	}
+	return *showHelp
+}
+
+// ShowConfig will output all config values as yaml if the --print-config flag is set
+// returns the value of the print-config flag
+func ShowConfig() bool {
+	if *showConfig {
+		out, _ := yaml.Marshal(viper.AllSettings())
+		fmt.Println(out)
+	}
+	return *showConfig
+
 }
 
 func Initialize() error {
